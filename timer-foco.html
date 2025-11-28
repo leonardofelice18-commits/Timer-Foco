@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer de Foco</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color 0.5s ease;
+            overflow: hidden;
+        }
+
+        body.focus {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        body.break {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        body.blink {
+            animation: blink 0.5s ease-in-out 3;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container {
+            background: white;
+            padding: 40px 50px 24px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 520px;
+            max-width: 90vw;
+            animation: fadeIn 0.5s ease;
+            position: relative;
+        }
+
+        .header {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .mode {
+            font-size: 28px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            grid-column: 2;
+            text-align: center;
+        }
+
+        .mode.focus {
+            color: #667eea;
+        }
+
+        .mode.break {
+            color: #f5576c;
+        }
+
+        .stats {
+            grid-column: 3;
+            justify-self: flex-end;
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .timer-wrapper {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 30px auto 24px;
+        }
+
+        .timer {
+            font-size: 96px;
+            font-weight: bold;
+            color: #333;
+            font-variant-numeric: tabular-nums;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .timer.running {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .progress-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 280px;
+        }
+
+        .progress-ring-bg {
+            opacity: 0.15;
+        }
+
+        .progress-ring-circle {
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.3s linear, stroke 0.3s ease;
+        }
+
+        /* bloco de configurações centralizado em grid 2x2 */
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px 32px;
+            justify-items: center;
+            margin-bottom: 20px;
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .config-item label {
+            font-size: 13px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        .config-item input {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 18px;
+            width: 90px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .config-item input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-reset-stats {
+            padding: 10px 18px;
+            font-size: 12px;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            background: #e5e7eb;
+            color: #374151;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            margin-bottom: 18px;
+        }
+
+        .btn-reset-stats:hover {
+            background: #d1d5db;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 14px 28px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .controls button {
+            flex: 1 1 22%;
+            min-width: 100px;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .btn-start {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-pause {
+            background: #f5576c;
+            color: white;
+        }
+
+        .btn-reset {
+            background: #888;
+            color: white;
+        }
+
+        .btn-skip {
+            background: #ffa726;
+            color: white;
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .legend {
+            margin-top: 6px;
+            font-size: 11px;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        .notification {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 20px 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 1000;
+            animation: fadeIn 0.5s ease;
+            display: none;
+        }
+
+        .notification.show {
+            display: block;
+        }
+
+        .notification.focus-notification {
+            color: #667eea;
+            border: 3px solid #667eea;
+        }
+
+        .notification.break-notification {
+            color: #f5576c;
+            border: 3px solid #f5576c;
+        }
+
+        .sound-toggle {
+            position: absolute;
+            top: 10px;          /* sobe um pouco para não ficar colado nos contadores */
+            right: 14px;        /* um pouco mais para dentro */
+            background: rgba(102, 126, 234, 0.12);
+            border: none;
+            color: #4b5563;
+            font-size: 18px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sound-toggle:hover {
+            background: rgba(102, 126, 234, 0.25);
+            transform: scale(1.05);
+        }
+
+        .sound-toggle.muted {
+            background: #e5e7eb;
+            color: #9ca3af;
+        }
+
+        .celebration-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            display: none;
+            overflow: hidden;
+            z-index: 900;
+        }
+
+        .celebration-overlay.show {
+            display: block;
+        }
+
+        .confetti-piece {
+            position: absolute;
+            width: 8px;
+            height: 14px;
+            border-radius: 2px;
+            opacity: 0.9;
+            top: -20px;
+            animation: confetti-fall 3s linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(110vh) rotate(360deg); }
+        }
+
+        @media (max-width: 500px) {
+            .container {
+                width: 90vw;
+                padding: 28px 20px 18px;
+            }
+
+            .timer-wrapper {
+                width: 230px;
+                height: 230px;
+            }
+
+            .progress-ring {
+                width: 230px;
+                height: 230px;
+            }
+
+            .timer {
+                font-size: 72px;
+            }
+
+            .config-grid {
+                gap: 12px 16px;
+            }
+
+            .controls {
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body class="focus">
+    <div class="notification" id="notification"></div>
+    <div class="celebration-overlay" id="celebrationOverlay"></div>
+
+    <div class="container">
+        <button class="sound-toggle" id="soundToggle">🔊</button>
+
+        <div class="header">
+            <div></div>
+            <div class="mode focus" id="mode">Foco</div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="focusCount">0</div>
+                    <div class="stat-label">Focos</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="breakCount">0</div>
+                    <div class="stat-label">Pausas</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="timer-wrapper">
+            <svg class="progress-ring" width="280" height="280" viewBox="0 0 280 280">
+                <!-- círculo de fundo -->
+                <circle
+                    class="progress-ring-bg"
+                    stroke="#667eea"
+                    stroke-width="8"
+                    fill="transparent"
+                    r="130"
+                    cx="140"
+                    cy="140"
+                    transform="rotate(-90 140 140)"
+                />
+                <!-- círculo de progresso -->
+                <circle
+                    class="progress-ring-circle"
+                    stroke="#667eea"
+                    stroke-width="8"
+                    fill="transparent"
+                    r="130"
+                    cx="140"
+                    cy="140"
+                    transform="rotate(-90 140 140)"
+                    id="progressCircle"
+                />
+            </svg>
+            <div class="timer" id="timer">25:00</div>
+        </div>
+        
+        <!-- bloco único em grid para deixar tudo centralizado -->
+        <div class="config-grid">
+            <div class="config-item">
+                <label>Foco (min)</label>
+                <input type="number" id="focusTime" value="25" min="1" max="60">
+            </div>
+            <div class="config-item">
+                <label>Pausa (min)</label>
+                <input type="number" id="breakTime" value="5" min="1" max="60">
+            </div>
+            <div class="config-item">
+                <label>Meta de focos</label>
+                <input type="number" id="focusGoal" value="0" min="0">
+            </div>
+            <div class="config-item">
+                <label>Meta de pausas</label>
+                <input type="number" id="breakGoal" value="0" min="0">
+            </div>
+        </div>
+
+        <button class="btn-reset-stats" id="resetStatsBtn">Zerar contagem</button>
+
+        <div class="controls">
+            <button class="btn-start" id="startBtn">Iniciar</button>
+            <button class="btn-pause" id="pauseBtn" disabled>Pausar</button>
+            <button class="btn-reset" id="resetBtn">Resetar</button>
+            <button class="btn-skip" id="skipBtn" disabled>Pular</button>
+        </div>
+
+        <p class="legend">
+            Barra de espaço: iniciar ou pausar · Esc: resetar · Clique no ícone de som para ativar ou desativar os alertas.
+        </p>
+    </div>
+
+    <script>
+        const SOUND_PREF_KEY = 'focus-timer-sound-enabled';
+
+        let mode = 'focus';
+        let timeLeft = 25 * 60;
+        let totalTime = 25 * 60;
+        let isRunning = false;
+        let intervalId = null;
+        let focusCount = 0;
+        let breakCount = 0;
+        let soundEnabled = true;
+        let goalsAchieved = false;
+
+        const timerDisplay = document.getElementById('timer');
+        const modeDisplay = document.getElementById('mode');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const skipBtn = document.getElementById('skipBtn');
+        const focusTimeInput = document.getElementById('focusTime');
+        const breakTimeInput = document.getElementById('breakTime');
+        const focusCountDisplay = document.getElementById('focusCount');
+        const breakCountDisplay = document.getElementById('breakCount');
+        const notification = document.getElementById('notification');
+        const soundToggle = document.getElementById('soundToggle');
+        const progressCircle = document.getElementById('progressCircle');
+        const progressRing = document.querySelector('.progress-ring');
+        const focusGoalInput = document.getElementById('focusGoal');
+        const breakGoalInput = document.getElementById('breakGoal');
+        const resetStatsBtn = document.getElementById('resetStatsBtn');
+        const celebrationOverlay = document.getElementById('celebrationOverlay');
+
+        const radius = 130;
+        const circumference = 2 * Math.PI * radius;
+
+        progressCircle.style.strokeDasharray = `${circumference}`;
+        progressCircle.style.strokeDashoffset = '0';
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateProgress() {
+            if (!totalTime || totalTime <= 0) {
+                progressCircle.style.strokeDashoffset = '0';
+                return;
+            }
+            const progress = Math.max(0, timeLeft) / totalTime;
+            const offset = circumference * (1 - progress);
+            progressCircle.style.strokeDashoffset = `${offset}`;
+        }
+
+        function updateDisplay() {
+            timerDisplay.textContent = formatTime(timeLeft);
+            updateProgress();
+            
+            if (mode === 'focus') {
+                modeDisplay.textContent = 'Foco';
+                modeDisplay.className = 'mode focus';
+                document.body.className = 'focus';
+                progressCircle.setAttribute('stroke', '#667eea');
+            } else {
+                modeDisplay.textContent = 'Pausa';
+                modeDisplay.className = 'mode break';
+                document.body.className = 'break';
+                progressCircle.setAttribute('stroke', '#f5576c');
+            }
+
+            if (isRunning) {
+                timerDisplay.classList.add('running');
+            } else {
+                timerDisplay.classList.remove('running');
+            }
+
+            document.title = `${formatTime(timeLeft)} - ${mode === 'focus' ? 'Foco' : 'Pausa'}`;
+        }
+
+        function playSound(frequency, duration) {
+            if (!soundEnabled) return;
+            
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+
+        function showNotification(message, type) {
+            notification.textContent = message;
+            notification.className = `notification ${type}-notification show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function showGoalCelebration() {
+            goalsAchieved = true;
+            showNotification('Parabéns, você alcançou sua meta!', 'focus');
+
+            celebrationOverlay.innerHTML = '';
+            celebrationOverlay.classList.add('show');
+
+            const colors = ['#f97316', '#facc15', '#22c55e', '#3b82f6', '#ec4899', '#a855f7'];
+
+            for (let i = 0; i < 120; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = `${Math.random() * 100}vw`;
+                piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.animationDelay = `${Math.random() * 0.5}s`;
+                celebrationOverlay.appendChild(piece);
+            }
+
+            setTimeout(() => {
+                celebrationOverlay.classList.remove('show');
+                celebrationOverlay.innerHTML = '';
+            }, 3500);
+        }
+
+        function checkGoals() {
+            const focusGoal = parseInt(focusGoalInput.value, 10) || 0;
+            const breakGoal = parseInt(breakGoalInput.value, 10) || 0;
+
+            const reachedFocus = !focusGoal || focusCount >= focusGoal;
+            const reachedBreak = !breakGoal || breakCount >= breakGoal;
+
+            if (!goalsAchieved && (focusGoal || breakGoal) && reachedFocus && reachedBreak) {
+                showGoalCelebration();
+            }
+        }
+
+        function switchMode() {
+            document.body.classList.add('blink');
+            setTimeout(() => {
+                document.body.classList.remove('blink');
+            }, 1500);
+
+            playSound(800, 0.2);
+            setTimeout(() => playSound(1000, 0.2), 200);
+            setTimeout(() => playSound(1200, 0.3), 400);
+
+            if (mode === 'focus') {
+                focusCount++;
+                focusCountDisplay.textContent = focusCount;
+                mode = 'break';
+                timeLeft = parseInt(breakTimeInput.value, 10) * 60;
+                totalTime = timeLeft;
+                showNotification('Hora da pausa, relaxe um pouco 😊', 'break');
+            } else {
+                breakCount++;
+                breakCountDisplay.textContent = breakCount;
+                mode = 'focus';
+                timeLeft = parseInt(focusTimeInput.value, 10) * 60;
+                totalTime = timeLeft;
+                showNotification('Hora de focar, vamos trabalhar 💪', 'focus');
+            }
+            updateDisplay();
+            checkGoals();
+        }
+
+        function tick() {
+            timeLeft--;
+            updateDisplay();
+
+            if (timeLeft === 0) {
+                switchMode();
+            }
+        }
+
+        function start() {
+            if (!isRunning) {
+                isRunning = true;
+                intervalId = setInterval(tick, 1000);
+                startBtn.disabled = true;
+                pauseBtn.disabled = false;
+                skipBtn.disabled = false;
+                focusTimeInput.disabled = true;
+                breakTimeInput.disabled = true;
+                updateDisplay();
+            }
+        }
+
+        function pause() {
+            if (isRunning) {
+                isRunning = false;
+                clearInterval(intervalId);
+                intervalId = null;
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+                updateDisplay();
+            }
+        }
+
+        function reset() {
+            pause();
+            mode = 'focus';
+            timeLeft = parseInt(focusTimeInput.value, 10) * 60;
+            totalTime = timeLeft;
+            goalsAchieved = false;
+            updateDisplay();
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            skipBtn.disabled = true;
+            focusTimeInput.disabled = false;
+            breakTimeInput.disabled = false;
+            document.title = 'Timer de Foco';
+        }
+
+        function skip() {
+            if (isRunning) {
+                timeLeft = 1;
+            }
+        }
+
+        function resetStats() {
+            focusCount = 0;
+            breakCount = 0;
+            focusCountDisplay.textContent = '0';
+            breakCountDisplay.textContent = '0';
+            goalsAchieved = false;
+        }
+
+        function applySoundPreference() {
+            try {
+                const stored = window.localStorage.getItem(SOUND_PREF_KEY);
+                if (stored !== null) {
+                    soundEnabled = stored === 'true';
+                }
+            } catch (e) {
+                soundEnabled = true;
+            }
+            soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+            soundToggle.title = soundEnabled ? 'Som ativado' : 'Som desativado';
+            soundToggle.classList.toggle('muted', !soundEnabled);
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            try {
+                window.localStorage.setItem(SOUND_PREF_KEY, String(soundEnabled));
+            } catch (e) {}
+            soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+            soundToggle.title = soundEnabled ? 'Som ativado' : 'Som desativado';
+            soundToggle.classList.toggle('muted', !soundEnabled);
+        }
+
+        startBtn.addEventListener('click', start);
+        pauseBtn.addEventListener('click', pause);
+        resetBtn.addEventListener('click', reset);
+        skipBtn.addEventListener('click', skip);
+        resetStatsBtn.addEventListener('click', resetStats);
+        soundToggle.addEventListener('click', toggleSound);
+
+        focusTimeInput.addEventListener('change', () => {
+            if (!isRunning && mode === 'focus') {
+                timeLeft = parseInt(focusTimeInput.value, 10) * 60;
+                totalTime = timeLeft;
+                updateDisplay();
+            }
+        });
+
+        breakTimeInput.addEventListener('change', () => {
+            if (!isRunning && mode === 'break') {
+                timeLeft = parseInt(breakTimeInput.value, 10) * 60;
+                totalTime = timeLeft;
+                updateDisplay();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (isRunning) {
+                    pause();
+                } else {
+                    start();
+                }
+            } else if (e.code === 'Escape') {
+                reset();
+            }
+        });
+
+        applySoundPreference();
+        updateDisplay();
+    </script>
+</body>
+</html>
